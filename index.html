@@ -1,0 +1,588 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CBS Harita Projesi</title>
+    <!-- CSS Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/map.css" />
+</head>
+<body>
+
+    <!-- MAP CONTAINER -->
+    <div id="map"></div>
+
+    <!-- USER PROFILE PANEL -->
+    <div id="user-profile-panel" class="card p-2 shadow-sm" style="position: absolute; bottom: 20px; right: 20px; z-index: 1000; background: #0f172a; color: white; border: 1px solid #334155; display: none; min-width: 200px;">
+        <div class="d-flex align-items-center gap-2">
+            <div style="background: #2563eb; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">
+                👤
+            </div>
+            <div>
+                <div id="user_display_name" style="font-weight: bold; font-size: 13px; color: #38bdf8;">-</div>
+                <small id="user_display_role" style="font-size: 10px; color: #94a3b8;">-</small>
+            </div>
+        </div>
+        <button id="btn_mudur_panel" onclick="bekleyenTalepleriAc()" class="btn btn-sm btn-warning mt-2 py-1" style="font-size: 11px; width: 100%; display: none; font-weight: bold;">
+            Onay Bekleyen Talepler
+        </button>
+        <button onclick="cikisYap()" class="btn btn-sm btn-outline-danger mt-2 py-0" style="font-size: 10px; width: 100%;">Çıkış Yap</button>
+    </div>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background: #0f172a; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+        <div style="background: #1e293b; padding: 30px; border-radius: 8px; color: white; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <h4 style="text-align: center; margin-bottom: 20px; color: #38bdf8;">CBS Giriş Paneli</h4>
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 12px;">Kullanıcı Adı</label>
+                <input type="text" id="login_username" placeholder="Kullanıcı adı" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: white; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 12px;">Şifre</label>
+                <input type="password" id="login_password" placeholder="Şifre" onkeydown="if(event.key === 'Enter') kullaniciGirisYap()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: white; box-sizing: border-box;">
+            </div>
+            <button type="button" onclick="kullaniciGirisYap()" style="width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Giriş Yap</button>
+        </div>
+    </div>
+
+    <!-- SEARCH PANEL -->
+    <div class="search-container" style="position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(15, 23, 42, 0.92); padding: 10px 12px; border-radius: 6px; color: white; width: 220px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); backdrop-filter: blur(4px);">
+        <h6 style="margin-top: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #38bdf8;">🔍 Veri Ara</h6>
+
+        <!-- Layer Selection -->
+        <div style="margin-bottom: 6px;">
+            <select id="sel_search_type" onchange="if(typeof searchCategoryChanged === 'function') searchCategoryChanged();" style="width: 100%; padding: 5px 8px; font-size: 11px; border-radius: 4px; background: #1e293b; color: white; border: 1px solid #334155; outline: none;">
+                <option value="all">Tüm Katmanlarda Ara</option>
+                <option value="binas">Yapı / Bina (Adresli)</option>
+                <option value="yol">Yollar & Sokaklar (Adresli)</option>
+                <option value="il">İller</option>
+                <option value="nehir">Nehirler</option>
+                <option value="bolge">Coğrafi Bölgeler</option>
+            </select>
+        </div>
+
+        <!-- CLASSIC TEXT SEARCH -->
+        <div id="classicSearchBox" style="margin-bottom: 4px;">
+            <input type="text" id="txt_search" placeholder="İsim giriniz..." style="width: 100%; padding: 5px 8px; font-size: 11px; border-radius: 4px; background: #1e293b; color: white; border: 1px solid #334155; box-sizing: border-box; outline: none;">
+            <button onclick="aramaYap()" style="width: 100%; margin-top: 6px; padding: 5px; font-size: 11px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Ara</button>
+        </div>
+
+        <!-- ADDRESS SEARCH BOXES -->
+        <div id="addressSearchBox" style="display: none; flex-direction: column; gap: 5px;">
+            <select id="searchIl" onchange="adresIlDegisti()" style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; background: #1e293b; color: white; border: 1px solid #334155;">
+                <option value="">-- İl Seçiniz --</option>
+            </select>
+
+            <select id="searchIlce" onchange="adresIlceDegisti()" disabled style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; background: #1e293b; color: white; border: 1px solid #334155;">
+                <option value="">-- Önce İl Seçiniz --</option>
+            </select>
+
+            <select id="searchMahalle" onchange="adresMahalleDegisti()" disabled style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; background: #1e293b; color: white; border: 1px solid #334155;">
+                <option value="">-- Önce İlçe Seçiniz --</option>
+            </select>
+
+            <select id="searchSokak" onchange="adresSokakDegisti()" disabled style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; background: #1e293b; color: white; border: 1px solid #334155;">
+                <option value="">-- Önce Mahalle Seçiniz --</option>
+            </select>
+
+            <select id="searchBina" odisabled style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; background: #1e293b; color: white; border: 1px solid #334155; display: none;">
+                <option value="">-- Önce Sokak Seçiniz --</option>
+            </select>
+
+            <button onclick="adresliAra()" style="width: 100%; margin-top: 4px; padding: 6px; font-size: 11px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                📍 Konuma Git
+            </button>
+        </div>
+    </div>
+
+    <!-- LAYER CONTROL PANEL -->
+    <div class="layer-control card p-2 shadow-sm" style="position: absolute; right: 10px; top: 10px; z-index: 1000; background: white; min-width: 200px;">
+        <h6 class="fw-bold mb-2">Katman Kontrolü</h6>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="layerIller" checked onchange="toggleLayer('iller')">
+            <label class="form-check-label" for="layerIller">İller (Nokta)</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="layerNehirler" checked onchange="toggleLayer('nehirler')">
+            <label class="form-check-label" for="layerNehirler">Nehirler (Çizgi)</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="layerBolgeler" checked onchange="toggleLayer('bolgeler')">
+            <label class="form-check-label" for="layerBolgeler">Coğrafi Bölgeler</label>
+        </div>
+        <hr class="my-2">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="layerKamu" checked onchange="toggleLayer('kamubinalari')">
+            <label class="form-check-label" for="layerKamu">Yapılar & Binalar</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="layerYollar" checked onchange="toggleLayer('yollar')">
+            <label class="form-check-label" for="layerYollar">Yollar & Sokaklar</label>
+        </div>
+    </div>
+
+    <!-- ANALYSIS PANELS -->
+    <div class="analysis-panels" style="position: absolute; bottom: 20px; left: 10px; z-index: 1000; display: flex; gap: 10px; align-items: flex-end;">
+        <!-- MESSAGE BOX -->
+        <div class="card p-2 shadow-sm" style="background: #0f172a; color: white; width: 220px; max-height: 220px; font-size: 12px; border: 1px solid #334155;">
+            <h6 class="fw-bold mb-2 text-warning" style="font-size: 13px;">💬 Sistem Mesajları</h6>
+            <div id="list_system_messages" style="overflow-y: auto; max-height: 150px; background: #1e293b; padding: 6px; border-radius: 4px; font-size: 11px;">
+                <div style="border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 4px;">
+                    <strong style="color:#f59e0b;">Sistem:</strong> Hoş geldiniz! Lütfen giriş yapınız.
+                </div>
+            </div>
+        </div>
+
+        <!-- ADDED STRUCTURES PANEL -->
+        <div class="card p-2 shadow-sm" style="background: #0f172a; color: white; min-width: 250px; max-height: 220px; font-size: 12px; border: 1px solid #334155;">
+            <h6 class="fw-bold mb-2 text-info" style="font-size: 13px;">📌 Eklenen Yapılar</h6>
+            <div class="d-flex gap-1 mb-2">
+                <input type="date" id="dt_start" class="form-control form-control-sm bg-dark text-light border-secondary" style="font-size:10px;">
+                <input type="date" id="dt_end" class="form-control form-control-sm bg-dark text-light border-secondary" style="font-size:10px;">
+                <button onclick="eklenenYapilariGetir()" class="btn btn-sm btn-primary py-0" style="font-size:10px;">Yükle</button>
+            </div>
+            <div id="list_added_structures" style="overflow-y: auto; max-height: 130px; background: #1e293b; padding: 6px; border-radius: 4px;">
+                <small class="text-muted">Tarih seçip Yükle'ye basınız.</small>
+            </div>
+        </div>
+
+        <!-- DELETED STRUCTURES PANEL -->
+        <div class="card p-2 shadow-sm" style="background: #0f172a; color: white; min-width: 250px; max-height: 220px; font-size: 12px; border: 1px solid #334155;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold m-0 text-danger" style="font-size: 13px;">🔥 Yanan/Yıkılan Yapılar</h6>
+            </div>
+            <div class="d-flex gap-1 mb-2">
+                <input type="date" id="del_dt_start" class="form-control form-control-sm bg-dark text-light border-secondary" style="font-size:10px;">
+                <input type="date" id="del_dt_end" class="form-control form-control-sm bg-dark text-light border-secondary" style="font-size:10px;">
+                <button onclick="silinenYapilariGetir()" class="btn btn-sm btn-danger py-0" style="font-size:10px;">Yükle</button>
+            </div>
+            <div id="list_deleted_structures" style="overflow-y: auto; max-height: 130px; background: #1e293b; padding: 6px; border-radius: 4px;">
+                <small class="text-muted">Tarih seçip Yükle'ye basınız.</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPROVAL MODAL -->
+    <div id="modal-mudur-onay" style="position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 9998; display: none; align-items: center; justify-content: center;">
+        <div style="background: #1e293b; padding: 25px; border-radius: 8px; color: white; width: 500px; max-height: 80vh; overflow-y: auto; border: 1px solid #475569;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="text-warning m-0">📋 Onay Bekleyen Talepler Paneli</h5>
+                <button onclick="document.getElementById('modal-mudur-onay').style.display='none'" class="btn btn-sm btn-outline-light py-0">X</button>
+            </div>
+            <div id="mudur_talepler_listesi">
+                <small class="text-muted">Talepler yükleniyor...</small>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script src="map.js?v=4000"></script>
+    <script src="search.js?v=4000"></script> <!-- 👈 Updated version parameter to force cache refresh -->
+    <script>
+        let aktifKullaniciAdi = "";
+        let aktifKullaniciRolTuru = "";
+        let aktifKullaniciBolge = "";
+
+        // Helper to normalize Turkish characters for text comparisons
+        function metinNormalize(str) {
+            if (!str) return "";
+            return str.toString()
+                .replace(/İ/g, "i").replace(/I/g, "i").replace(/ı/g, "i")
+                .toLowerCase()
+                .replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ü/g, "u")
+                .replace(/ö/g, "o").replace(/ç/g, "c").trim();
+        }
+
+        async function kullaniciGirisYap() {
+            const kadiElem = document.getElementById("login_username");
+            const sifreElem = document.getElementById("login_password");
+            if (!kadiElem || !sifreElem) return alert("Giriş alanları bulunamadı!");
+
+            const kadi = kadiElem.value.trim();
+            const sifre = sifreElem.value.trim();
+            if (!kadi || !sifre) return alert("Lütfen kullanıcı adı ve şifrenizi giriniz!");
+
+            try {
+                const baseUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://localhost:7183/api';
+
+                const response = await fetch(`${baseUrl}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kullaniciAdi: kadi, sifre: sifre })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.error || "Giriş başarısız! Kullanıcı bilgilerinizi kontrol ediniz.");
+                    return; // ⛔ Halt map transition on error
+                }
+
+                // Save user session data from backend
+                aktifKullaniciAdi = data.adSoyad;
+                aktifKullaniciRolTuru = data.rol;
+                aktifKullaniciBolge = data.sorumluBolgeSehir || "TumTurkiye";
+
+                if (typeof tumPopuplariKapat === 'function') tumPopuplariKapat();
+                if (typeof analizKutulariniSifirla === 'function') analizKutulariniSifirla();
+
+                document.getElementById("user_display_name").innerText = data.adSoyad;
+                document.getElementById("user_display_role").innerText = (data.rol === "Mudur" || data.rol === "Müdür")
+                    ? "Genel Müdür (Tüm Türkiye)"
+                    : `${data.sorumluBolgeSehir} Sorumlusu`;
+
+                document.getElementById("user-profile-panel").style.display = "block";
+                document.getElementById("btn_mudur_panel").style.display = "block";
+
+                const overlay = document.getElementById("login-overlay");
+                if (overlay) overlay.style.display = "none";
+
+                // Fetch chat/system messages
+                gecmisMesajlariGetir();
+
+                // Calculate map zoom parameters based on region
+                let hedefCenter = [35.2433, 38.9637];
+                let hedefZoom = 6.0;
+                let hedefBounds = null;
+                let minZoomSinir = 5.0;
+
+                const normBolge = metinNormalize(aktifKullaniciBolge);
+
+                if (normBolge.includes("ankara")) {
+                    hedefCenter = [32.8597, 39.9334];
+                    hedefZoom = 10.5;
+                    hedefBounds = [[32.1000, 39.2000], [33.6000, 40.6000]];
+                    minZoomSinir = 9.0;
+                } else if (normBolge.includes("anadolu")) {
+                    hedefCenter = [32.8597, 39.9334];
+                    hedefZoom = 7.5;
+                    hedefBounds = [[28.5000, 36.5000], [37.5000, 42.0000]];
+                    minZoomSinir = 6.0;
+                } else if (normBolge.includes("istanbul")) {
+                    hedefCenter = [28.9784, 41.0082];
+                    hedefZoom = 10.5;
+                    hedefBounds = [[28.0000, 40.7000], [30.0000, 41.6000]];
+                    minZoomSinir = 9.0;
+                } else if (normBolge.includes("izmir")) {
+                    hedefCenter = [27.1428, 38.4237];
+                    hedefZoom = 10.0;
+                    hedefBounds = [[26.2000, 37.8000], [28.1000, 39.2000]];
+                    minZoomSinir = 8.5;
+                }
+                else if (normBolge.includes("akdeniz")) {
+                    hedefCenter = [30.7133, 36.8969];
+                    hedefZoom = 7.5;
+                    hedefBounds = [[27.0000, 35.0000], [39.0000, 39.5000]];
+                    minZoomSinir = 6.0;
+                }
+
+                // Execute Map Fly-To animation
+                if (typeof map !== 'undefined' && map) {
+                    setTimeout(() => {
+                        map.setMaxBounds(null);
+                        map.resize();
+                        map.setMinZoom(minZoomSinir);
+
+                        map.flyTo({
+                            center: hedefCenter,
+                            zoom: hedefZoom,
+                            essential: true,
+                            speed: 1.2,
+                            curve: 1.4
+                        });
+
+                        if (hedefBounds) {
+                            setTimeout(() => {
+                                map.setMaxBounds(hedefBounds);
+                            }, 1500);
+                        }
+                    }, 350);
+                }
+
+            } catch (err) {
+                console.error("Giriş hatası:", err);
+                alert("Sunucuya bağlanılamadı! Lütfen C# Backend servisinizin çalıştığından emin olun.");
+            }
+        }
+
+        function cikisYap() {
+            if (typeof tumPopuplariKapat === 'function') tumPopuplariKapat();
+            analizKutulariniSifirla();
+
+            document.getElementById("user-profile-panel").style.display = "none";
+            const overlay = document.getElementById("login-overlay");
+            if (overlay) overlay.style.display = "flex";
+            document.getElementById("login_password").value = "";
+        }
+
+        function bekleyenTalepleriAc() {
+            const modal = document.getElementById("modal-mudur-onay");
+            if (modal) modal.style.display = "flex";
+            bekleyenTalepleriGetir();
+        }
+
+        function bekleyenTalepleriGetir() {
+            const rol = typeof aktifKullaniciRolTuru !== 'undefined' ? aktifKullaniciRolTuru : "Mudur";
+            const listeKapsayici = document.getElementById("mudur_talepler_listesi");
+            if (!listeKapsayici) return;
+
+            listeKapsayici.innerHTML = "<small class='text-info'>Talepler yükleniyor...</small>";
+
+            fetch(`/api/katman/bekleyen-talepler?rol=${rol}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Talepler çekilemedi.");
+                    return response.json();
+                })
+                .then(data => {
+                    listeKapsayici.innerHTML = "";
+                    if (!data || data.length === 0) {
+                        listeKapsayici.innerHTML = `
+                                                        <div style="padding: 15px; text-align: center; color: #9ca3af;">
+                                                            Onay bekleyen herhangi bir talep bulunmuyor.
+                                                        </div>`;
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        let konumMetni = (item.boylam && item.enlem) ? `<b>Konum:</b> ${item.boylam.toFixed(4)}, ${item.enlem.toFixed(4)}` : "";
+                        let gerekceHTML = (item.gerekce && item.gerekce.trim() !== "") ? `
+                                                        <div style="color: #f87171; font-size: 12px; margin-top: 6px; background: rgba(239, 68, 68, 0.12); padding: 6px; border-radius: 4px; border-left: 3px solid #ef4444;">
+                                                            <b>Gerekçe:</b> ${item.gerekce}
+                                                        </div>` : '';
+
+                        let ruhsatHTML = (item.ruhsatDosyaYolu && item.ruhsatDosyaYolu.trim() !== "") ? `
+                                                        <div style="margin-top: 4px;">
+                                                            <a href="${item.ruhsatDosyaYolu}" target="_blank" style="color: #60a5fa; text-decoration: underline; font-size: 12px;">İzin Belgesi / Ruhsat Gör</a>
+                                                        </div>` : '';
+
+                        const kartHTML = `
+                                                        <div class="talep-kart" style="border: 1px solid #374151; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #0f172a;">
+                                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                                                                <div style="flex: 1;">
+                                                                    <h6 style="margin: 0; color: #f9fafb; font-size: 14px;">${item.name}</h6>
+                                                                    <div style="color: #9ca3af; font-size: 12px;"><b>Tür:</b> ${item.type}</div>
+                                                                    <div style="color: #9ca3af; font-size: 11px;">${konumMetni}</div>
+                                                                    ${ruhsatHTML}
+                                                                    ${gerekceHTML}
+                                                                </div>
+                                                                <div style="display: flex; gap: 4px;">
+                                                                    <button onclick="talepOnayla(${item.id}, '${item.katmanTuru}')" class="btn btn-sm btn-success py-1" style="font-size:11px;">☑ Onayla</button>
+                                                                    <button onclick="talepReddet(${item.id}, '${item.name}', '${item.katmanTuru}')" class="btn btn-sm btn-danger py-1" style="font-size:11px;">X Reddet</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>`;
+
+                        listeKapsayici.innerHTML += kartHTML;
+                    });
+                })
+                .catch(err => {
+                    console.error("Bekleyen talepler hatası:", err);
+                    listeKapsayici.innerHTML = "<small class='text-danger'>Talepler yüklenirken hata oluştu.</small>";
+                });
+        }
+
+        async function talepOnayla(id, katmanTuru) {
+            try {
+                const baseUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://localhost:7183/api';
+
+                const url = `${baseUrl}/katman/onayla/${id}` +
+                    `?rol=${encodeURIComponent(aktifKullaniciRolTuru)}` +
+                    `&katmanTuru=${encodeURIComponent(katmanTuru)}` +
+                    `&kullaniciBolge=${encodeURIComponent(aktifKullaniciBolge)}` +
+                    `&islemYapanAdSoyad=${encodeURIComponent(aktifKullaniciAdi)}`;
+
+                const res = await fetch(url, { method: 'PUT' });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(data.message);
+                    bekleyenTalepleriGetir();
+                    if (typeof dynamicLayersLoad === 'function') dynamicLayersLoad();
+                    gecmisMesajlariGetir();
+                } else {
+                    alert(data.error || "Onaylama işlemi başarısız.");
+                }
+            } catch (err) {
+                console.error("Onaylama hatası:", err);
+                alert("Onaylama esnasında sunucu hatası oluştu.");
+            }
+        }
+
+        async function talepReddet(id, yapiAdi, katmanTuru) {
+            const retSebebi = prompt(`"${yapiAdi}" talebini reddetme sebebinizi giriniz:`, "Uygun görülmedi");
+            if (retSebebi == null) return;
+            if (retSebebi.trim() === "") return alert("Lütfen geçerli bir ret sebebi belirtiniz!");
+
+            try {
+                const baseUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://localhost:7183/api';
+
+                const url = `${baseUrl}/katman/reddet/${id}` +
+                    `?rol=${encodeURIComponent(aktifKullaniciRolTuru)}` +
+                    `&katmanTuru=${encodeURIComponent(katmanTuru)}` +
+                    `&retSebebi=${encodeURIComponent(retSebebi)}` +
+                    `&kullaniciBolge=${encodeURIComponent(aktifKullaniciBolge)}` +
+                    `&islemYapanAdSoyad=${encodeURIComponent(aktifKullaniciAdi)}`;
+
+                const res = await fetch(url, { method: 'PUT' });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(data.message);
+                    bekleyenTalepleriGetir();
+                    if (typeof dynamicLayersLoad === 'function') dynamicLayersLoad();
+                    gecmisMesajlariGetir();
+                } else {
+                    alert(data.error || "Reddetme işlemi başarısız.");
+                }
+            } catch (err) {
+                console.error("Reddetme hatası:", err);
+                alert("Reddetme esnasında sunucu hatası oluştu.");
+            }
+        }
+
+        async function eklenenYapilariGetir() {
+            const start = document.getElementById("dt_start").value;
+            const end = document.getElementById("dt_end").value;
+            const listDiv = document.getElementById("list_added_structures");
+
+            if (!start || !end) return alert("Lütfen başlangıç ve bitiş tarihlerini seçiniz!");
+
+            listDiv.innerHTML = "<small class='text-info'>Veriler çekiliyor...</small>";
+            try {
+                const baseUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://localhost:7183/api';
+                const res = await fetch(`${baseUrl}/katman/eklenenler?baslangic=${start}&bitis=${end}`);
+                const data = await res.json();
+
+                if (data && data.length > 0) {
+                    let html = "";
+                    data.forEach(item => {
+                        const simge = item.katmanTuru === 'yol' ? '🚧' : '📌';
+                        html += `
+                                                        <div style="border-bottom: 1px solid #334155; padding: 3px 0;">
+                                                            <strong style="color:#38bdf8;">${simge} ${item.name || item.Name}</strong>
+                                                            <small style="color:#94a3b8;">(${item.type || 'Kamu'})</small>
+                                                        </div>`;
+                    });
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = "<small class='text-warning'>Seçilen tarihlerde yapı bulunamadı.</small>";
+                }
+            } catch {
+                listDiv.innerHTML = "<small class='text-danger'>Sorgu hatası oluştu.</small>";
+            }
+        }
+
+        async function silinenYapilariGetir() {
+            const startElem = document.getElementById("del_dt_start");
+            const endElem = document.getElementById("del_dt_end");
+            const listDiv = document.getElementById("list_deleted_structures");
+
+            if (!startElem || !endElem || !listDiv) return;
+
+            const start = startElem.value;
+            const end = endElem.value;
+
+            if (!start || !end) return alert("Lütfen başlangıç ve bitiş tarihlerini seçiniz!");
+
+            listDiv.innerHTML = "<small class='text-info'>Yükleniyor...</small>";
+            try {
+                const baseUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://localhost:7183/api';
+                const res = await fetch(`${baseUrl}/katman/silinenler?baslangic=${start}&bitis=${end}`);
+                const data = await res.json();
+
+                if (data && data.length > 0) {
+                    let html = "";
+                    data.forEach(item => {
+                        const simge = item.katmanTuru === 'yol' ? '🚧' : '🔥';
+                        const dosyaLink = item.ruhsatDosyasi ? `${baseUrl.replace('/api', '')}${item.ruhsatDosyasi}` : null;
+                        html += `
+                                                        <div style="border-bottom: 1px solid #334155; padding: 4px 0;">
+                                                            <strong style="color:#f87171;">${simge} ${item.name || item.Name}</strong>
+                                                            <small style="color:#94a3b8;">(${item.type || 'Kamu'})</small><br>
+                                                            <small style="color:#cbd5e1; font-size: 10px;"><b>Gerekçe:</b> ${item.sebep || 'Belirtilmedi'}</small>
+                                                            ${dosyaLink ? `<br><a href="${dosyaLink}" target="_blank" style="color:#38bdf8; font-size:10px;">Belgeyi İncele</a>` : ''}
+                                                        </div>`;
+                    });
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = "<small class='text-muted'>Silinen veya kaldırılan veri bulunmuyor.</small>";
+                }
+            } catch {
+                listDiv.innerHTML = "<small class='text-danger'>Yükleme hatası oluştu.</small>";
+            }
+        }
+
+        // =========================================================================
+        // FETCH HISTORICAL MESSAGES
+        // =========================================================================
+        async function gecmisMesajlariGetir() {
+            const msgDiv = document.getElementById("list_system_messages");
+            if (!msgDiv) return;
+
+            msgDiv.innerHTML = "";
+
+            const isYonetici = (
+                aktifKullaniciRolTuru === "Mudur" || aktifKullaniciRolTuru === "Müdür" ||
+                aktifKullaniciRolTuru === "BolgeSorumlusu" || aktifKullaniciRolTuru === "Bölge Sorumlusu"
+            );
+
+            let html = `
+                                            <div style="border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 4px;">
+                                                <strong style="color:#f59e0b;">Sistem:</strong> Merhaba, Sayın ${aktifKullaniciAdi}.
+                                            </div>`;
+
+            if (isYonetici) {
+                msgDiv.innerHTML = html;
+                return;
+            }
+
+            try {
+                const baseUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://localhost:7183/api';
+
+                const res = await fetch(`${baseUrl}/mesajlar?kullaniciAdi=${encodeURIComponent(aktifKullaniciAdi)}`);
+
+                if (res.ok) {
+                    const mesajlar = await res.json();
+
+                    if (mesajlar && mesajlar.length > 0) {
+                        mesajlar.forEach(m => {
+                            const metin = m.mesajMetni || m.MesajMetni || "";
+                            if (metin.toLowerCase().includes("onaylandı") || metin.toLowerCase().includes("reddedildi")) {
+                                const zamanRaw = m.zaman || m.Zaman;
+                                const zaman = zamanRaw ? new Date(zamanRaw).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : "";
+                                const renk = metin.toLowerCase().includes("reddedildi") ? "#f87171" : "#34d399";
+
+                                html += `
+                                                                <div style="border-bottom: 1px solid #334155; padding: 4px 0; font-size:11px;">
+                                                                    <span style="color:#94a3b8; font-size:9px;">[${zaman}]</span>
+                                                                    <span style="color:${renk}; font-weight: 500;">${metin}</span>
+                                                                </div>`;
+                            }
+                        });
+                    }
+                }
+                msgDiv.innerHTML = html;
+                msgDiv.scrollTop = msgDiv.scrollHeight;
+            } catch (err) {
+                console.error("Mesajlar çekilirken hata:", err);
+                msgDiv.innerHTML = html;
+            }
+        }
+
+        function analizKutulariniSifirla() {
+            const listAdded = document.getElementById("list_added_structures");
+            if (listAdded) listAdded.innerHTML = "<small class='text-muted'>Tarih seçip Yükle'ye basınız.</small>";
+
+            const listDeleted = document.getElementById("list_deleted_structures");
+            if (listDeleted) listDeleted.innerHTML = "<small class='text-muted'>Tarih seçip Yükle'ye basınız.</small>";
+
+            if (document.getElementById("dt_start")) document.getElementById("dt_start").value = "";
+            if (document.getElementById("dt_end")) document.getElementById("dt_end").value = "";
+            if (document.getElementById("del_dt_start")) document.getElementById("del_dt_start").value = "";
+            if (document.getElementById("del_dt_end")) document.getElementById("del_dt_end").value = "";
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+﻿/* =========================================================================
+   1. GENEL SAYFA VE HARİTA BOYUTLANDIRMA (HARİTANIN BEYAZ/GRİ KALMASINI ÇÖZER)
+   ========================================================================= */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    background-color: #0f172a;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden; /* Taşmaları engeller */
+}
+
+/* 💡 KRİTİK DÜZELTME: #map mutlak pozisyonlama ile ekrana %100 oturmalı */
+#map {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100% !important;
+    width: 100% !important;
+    z-index: 1 !important; /* Haritayı tabana sabitler */
+}
+
+/* =========================================================================
+   2. MAPLIBRE VE POPUP BİLEŞENLERİ
+   ========================================================================= */
+.maplibregl-popup {
+    z-index: 3000 !important;
+    max-width: 340px !important;
+}
+
+.custom-popup .maplibregl-popup-content,
+.maplibregl-popup-content {
+    width: 320px !important;
+    background: #0b1329 !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 14px !important;
+    font-size: 13px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6) !important;
+}
+
+    .maplibregl-popup-content input,
+    .maplibregl-popup-content select,
+    .maplibregl-popup-content textarea,
+    .maplibregl-popup-content button {
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+    }
+
+/* POPUP FORM ELEMANLARI */
+.popup-form input, .popup-form select {
+    width: 100%;
+    margin-top: 6px;
+    margin-bottom: 6px;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #475569;
+    background: #1e293b;
+    color: white;
+    box-sizing: border-box;
+}
+
+.popup-form button {
+    width: 100%;
+    background: #059669;
+    color: white;
+    border: none;
+    padding: 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+    .popup-form button:hover {
+        background: #10b981;
+    }
+
+.delete-btn {
+    width: 100%;
+    background: #ef4444 !important;
+    color: white;
+    border: none;
+    padding: 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+    .delete-btn:hover {
+        background: #dc2626 !important;
+    }
+
+.add-btn {
+    background: #2563eb !important;
+}
+
+    .add-btn:hover {
+        background: #3b82f6 !important;
+    }
+
+.custom-marker-wrapper {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #1e3a8a;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+
+/* =========================================================================
+   3. PANELLER VE KONTROLLER (HARİTANIN ÜSTÜNDE KALMASINI SAĞLAR)
+   ========================================================================= */
+.layer-control-panel {
+    position: absolute;
+    top: 80px;
+    right: 10px;
+    background: #0f172a;
+    color: white;
+    padding: 12px;
+    border-radius: 6px;
+    z-index: 100 !important; /* Haritanın üzerinde kalmalı */
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    font-size: 13px;
+    min-width: 160px;
+}
+
+    .layer-control-panel label {
+        display: block;
+        margin: 6px 0;
+        cursor: pointer;
+    }
+
+    .layer-control-panel input {
+        margin-right: 8px;
+        cursor: pointer;
+    }
+
+.search-panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #0f172a;
+    color: white;
+    padding: 8px 10px;
+    border-radius: 6px;
+    z-index: 100 !important; /* Haritanın üzerinde kalmalı */
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    font-size: 11px;
+    min-width: 140px;
+}
+
+    .search-panel select, .search-panel input {
+        width: 100%;
+        margin: 3px 0 4px 0;
+        padding: 4px;
+        border-radius: 4px;
+        border: 1px solid #475569;
+        background: #1e293b;
+        color: white;
+        box-sizing: border-box;
+        font-size: 11px;
+    }
+
+    .search-panel button {
+        width: 100%;
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 11px;
+    }
+
+        .search-panel button:hover {
+            background: #3b82f6;
+        }
+
+/* Sol alttaki panellerin hizalanması için genel sınıf */
+.panel-box {
+    z-index: 100 !important;
+    position: relative;
+}
