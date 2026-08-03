@@ -2,7 +2,7 @@
 
 This repository contains the web-based Geographic Information System (GIS) application developed during my Summer Practice.
 
-##  Features
+## Features
 - **Dynamic Layer Rendering:** Visualizes Provinces, Rivers, Regions, Buildings, and Roads on interactive maps using MapLibre GL.
 - **Address & Spatial Search:** Integrated search panel supporting hierarchical location lookup (Province > District > Neighborhood > Street > Building).
 - **Freehand Drawing:** Interactive canvas drawing tools for mapping line and polygon geographic data directly on the map.
