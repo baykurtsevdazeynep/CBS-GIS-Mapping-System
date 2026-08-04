@@ -1,0 +1,30 @@
+[
+  {
+    "bolgeAdi": "İç Anadolu Bölgesi",
+    "iller": [ "Ankara", "Konya", "Eskişehir", "Kayseri", "Sivas", "Kırıkkale", "Aksaray", "Karaman", "Kırşehir", "Niğde", "Nevşehir", "Yozgat", "Çankırı" ]
+  },
+  {
+    "bolgeAdi": "Marmara Bölgesi",
+    "iller": [ "İstanbul", "Bursa", "Kocaeli", "Sakarya", "Tekirdağ", "Balıkesir", "Çanakkale", "Edirne", "Kırklareli", "Yalova", "Bilecik" ]
+  },
+  {
+    "bolgeAdi": "Ege Bölgesi",
+    "iller": [ "İzmir", "Aydın", "Muğla", "Manisa", "Denizli", "Kütahya", "Afyonkarahisar", "Uşak" ]
+  },
+  {
+    "bolgeAdi": "Akdeniz Bölgesi",
+    "iller": [ "Antalya", "Adana", "Mersin", "Hatay", "Isparta", "Burdur", "Kahramanmaraş", "Osmaniye" ]
+  },
+  {
+    "bolgeAdi": "Karadeniz Bölgesi",
+    "iller": [ "Trabzon", "Samsun", "Ordu", "Giresun", "Rize", "Artvin", "Bolu", "Düzce", "Kastamonu", "Zonguldak", "Amasya", "Sinop", "Tokat", "Çorum", "Gümüşhane", "Bayburt", "Karabük", "Bartın" ]
+  },
+  {
+    "bolgeAdi": "Doğu Anadolu Bölgesi",
+    "iller": [ "Erzurum", "Van", "Malatya", "Elazığ", "Ağrı", "Kars", "Iğdır", "Hakkari", "Muş", "Bitlis", "Bingöl", "Tunceli", "Erzincan", "Ardahan" ]
+  },
+  {
+    "bolgeAdi": "Güneydoğu Anadolu Bölgesi",
+    "iller": [ "Gaziantep", "Şanlıurfa", "Diyarbakır", "Mardin", "Batman", "Adıyaman", "Siirt", "Şırnak", "Kilis" ]
+  }
+]
