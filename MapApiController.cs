@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.IO;
@@ -62,6 +62,11 @@ namespace CBS_Harita.Controllers
             [FromForm] string? koordinatMetni,
             [FromForm] string? rol,
             [FromForm] string? ekleyenKullanici,
+            [FromForm] string? city,
+            [FromForm] string? ilce,
+            [FromForm] string? mahalle,
+            [FromForm] string? sokak,
+            [FromForm] string? kapiNo,
             IFormFile? ruhsatDosyasi)
         {
             try
@@ -86,7 +91,12 @@ namespace CBS_Harita.Controllers
                         Enlem = Math.Round(duzgunEnlem, 6),
                         Status = baslangicStatus,
                         Ekleme_Tarihi = DateTime.UtcNow,
-                        EkleyenKullanici = ekleyenKullanici
+                        EkleyenKullanici = ekleyenKullanici,
+                        City = city,
+                        Ilce = ilce,
+                        Mahalle = mahalle,
+                        SokakCadde = sokak,
+                        KapiNo = kapiNo
                     };
 
                     if (ruhsatDosyasi != null && ruhsatDosyasi.Length > 0)
@@ -147,7 +157,10 @@ namespace CBS_Harita.Controllers
                         Koordinat_Metni = koordinatMetni ?? "",
                         Status = baslangicStatus,
                         Ekleme_Tarihi = DateTime.UtcNow,
-                        EkleyenKullanici = ekleyenKullanici
+                        EkleyenKullanici = ekleyenKullanici,
+                        City = city,
+                        Ilce = ilce,
+                        Mahalle = mahalle
                     };
 
                     if (ruhsatDosyasi != null && ruhsatDosyasi.Length > 0)
@@ -210,15 +223,7 @@ namespace CBS_Harita.Controllers
                     var bina = await _context.KamuBinalari.FindAsync(id);
                     if (bina == null) return NotFound(new { error = "Yapı/Bina bulunamadı." });
 
-                    if (isMudur)
-                    {
-                        bina.Status = 3;
-                        bina.Gerekce = sebep;
-                    }
-                    else
-                    {
-                        bina.Gerekce = sebep;
-                    }
+                    bina.Gerekce = sebep;
                     _context.KamuBinalari.Update(bina);
                 }
                 else if (tur == "yol" || tur == "yollar")
@@ -226,15 +231,7 @@ namespace CBS_Harita.Controllers
                     var yol = await _context.Yollar.FindAsync(id);
                     if (yol == null) return NotFound(new { error = "Yol bulunamadı." });
 
-                    if (isMudur)
-                    {
-                        yol.Status = 3;
-                        yol.Gerekce = sebep;
-                    }
-                    else
-                    {
-                        yol.Gerekce = sebep;
-                    }
+                    yol.Gerekce = sebep;
                     _context.Yollar.Update(yol);
                 }
 
@@ -446,14 +443,6 @@ namespace CBS_Harita.Controllers
                     var bina = await _context.KamuBinalari.FirstOrDefaultAsync(b => b.Id == id);
                     if (bina == null) return NotFound(new { error = "Yapı/Bina bulunamadı." });
 
-                    bool isSilmeVeyaGuncelleme = !string.IsNullOrEmpty(bina.Gerekce) ||
-                                                 (!string.IsNullOrEmpty(bina.Type) && bina.Type.Contains("[Güncelleme Talebi]"));
-
-                    if (isSilmeVeyaGuncelleme && (rol != "Mudur" && rol != "Müdür"))
-                    {
-                        return BadRequest(new { error = "Silme ve Güncelleme taleplerini onaylama yetkisi sadece Genel Müdür'dedir!" });
-                    }
-
                     hedefKullanici = bina.EkleyenKullanici;
                     talepSehri = bina.City;
 
@@ -495,14 +484,6 @@ namespace CBS_Harita.Controllers
                     var yol = await _context.Yollar.FirstOrDefaultAsync(y => y.Id == id);
                     if (yol == null) return NotFound(new { error = "Yol bulunamadı." });
 
-                    bool isSilmeVeyaGuncelleme = !string.IsNullOrEmpty(yol.Gerekce) ||
-                                                 (!string.IsNullOrEmpty(yol.Type) && yol.Type.Contains("[Güncelleme Talebi]"));
-
-                    if (isSilmeVeyaGuncelleme && (rol != "Mudur" && rol != "Müdür"))
-                    {
-                        return BadRequest(new { error = "Silme ve Güncelleme taleplerini onaylama yetkisi sadece Genel Müdür'dedir!" });
-                    }
-
                     hedefKullanici = yol.EkleyenKullanici;
                     talepSehri = yol.City;
 
@@ -540,7 +521,6 @@ namespace CBS_Harita.Controllers
                     _context.Yollar.Update(yol);
                 }
 
-                // SYSTEM MESSAGE LOG
                 if (string.IsNullOrWhiteSpace(hedefKullanici))
                 {
                     hedefKullanici = "Mehmet Demir";
@@ -589,7 +569,6 @@ namespace CBS_Harita.Controllers
             string b = MetniTemizle(bolge);
             string s = MetniTemizle(sehir);
 
-            // 1. CENTRAL ANATOLIA REGION
             if (b.Contains("anadolu"))
             {
                 return s.Contains("ankara") || s.Contains("konya") || s.Contains("eskisehir") ||
@@ -597,21 +576,18 @@ namespace CBS_Harita.Controllers
                        s.Contains("aksaray") || s.Contains("karaman") || s.Contains("anadolu");
             }
 
-            // 2. AEGEAN REGION
             if (b.Contains("ege"))
             {
                 return s.Contains("izmir") || s.Contains("aydin") || s.Contains("mugla") ||
                        s.Contains("manisa") || s.Contains("denizli") || s.Contains("ege");
             }
 
-            // 3. MARMARA REGION
             if (b.Contains("marmara"))
             {
                 return s.Contains("istanbul") || s.Contains("bursa") || s.Contains("kocaeli") ||
                        s.Contains("sakarya") || s.Contains("marmara");
             }
 
-            // 4. MEDITERRANEAN REGION
             if (b.Contains("akdeniz"))
             {
                 return s.Contains("antalya") || s.Contains("adana") || s.Contains("mersin") ||
@@ -649,14 +625,6 @@ namespace CBS_Harita.Controllers
                     var bina = await _context.KamuBinalari.FirstOrDefaultAsync(b => b.Id == id);
                     if (bina == null) return NotFound(new { error = "Yapı/Bina bulunamadı." });
 
-                    bool isSilmeVeyaGuncelleme = !string.IsNullOrEmpty(bina.Gerekce) ||
-                                                 (!string.IsNullOrEmpty(bina.Type) && bina.Type.Contains("[Güncelleme Talebi]"));
-
-                    if (isSilmeVeyaGuncelleme && (rol != "Mudur" && rol != "Müdür"))
-                    {
-                        return BadRequest(new { error = "Silme ve Güncelleme taleplerini işleme alma yetkisi sadece Genel Müdür'dedir!" });
-                    }
-
                     hedefKullanici = bina.EkleyenKullanici;
                     talepSehri = bina.City;
 
@@ -677,14 +645,6 @@ namespace CBS_Harita.Controllers
                     var yol = await _context.Yollar.FirstOrDefaultAsync(y => y.Id == id);
                     if (yol == null) return NotFound(new { error = "Yol bulunamadı." });
 
-                    bool isSilmeVeyaGuncelleme = !string.IsNullOrEmpty(yol.Gerekce) ||
-                                                 (!string.IsNullOrEmpty(yol.Type) && yol.Type.Contains("[Güncelleme Talebi]"));
-
-                    if (isSilmeVeyaGuncelleme && (rol != "Mudur" && rol != "Müdür"))
-                    {
-                        return BadRequest(new { error = "Silme ve Güncelleme taleplerini işleme alma yetkisi sadece Genel Müdür'dedir!" });
-                    }
-
                     hedefKullanici = yol.EkleyenKullanici;
                     talepSehri = yol.City;
 
@@ -701,7 +661,6 @@ namespace CBS_Harita.Controllers
                     _context.Yollar.Update(yol);
                 }
 
-                // SYSTEM MESSAGE REJECTION LOG
                 if (string.IsNullOrWhiteSpace(hedefKullanici))
                 {
                     hedefKullanici = "Mehmet Demir";
@@ -962,8 +921,8 @@ namespace CBS_Harita.Controllers
             {
                 mahalleler = await _context.Yollar.AsNoTracking()
                     .Where(y => y.City != null && y.City.ToLower() == ilLower
-                             && y.Ilce != null && y.Ilce.ToLower() == ilceLower
-                             && !string.IsNullOrEmpty(y.Mahalle))
+                           && y.Ilce != null && y.Ilce.ToLower() == ilceLower
+                           && !string.IsNullOrEmpty(y.Mahalle))
                     .Select(y => y.Mahalle!)
                     .Distinct().OrderBy(x => x).ToListAsync();
             }
@@ -971,8 +930,8 @@ namespace CBS_Harita.Controllers
             {
                 mahalleler = await _context.KamuBinalari.AsNoTracking()
                     .Where(b => b.City != null && b.City.ToLower() == ilLower
-                             && b.Ilce != null && b.Ilce.ToLower() == ilceLower
-                             && !string.IsNullOrEmpty(b.Mahalle))
+                           && b.Ilce != null && b.Ilce.ToLower() == ilceLower
+                           && !string.IsNullOrEmpty(b.Mahalle))
                     .Select(b => b.Mahalle!)
                     .Distinct().OrderBy(x => x).ToListAsync();
             }
@@ -992,8 +951,8 @@ namespace CBS_Harita.Controllers
 
             var yollar = await _context.Yollar.AsNoTracking()
                 .Where(y => y.City != null && y.City.ToLower() == ilLower
-                         && y.Ilce != null && y.Ilce.ToLower() == ilceLower
-                         && y.Mahalle != null && y.Mahalle.ToLower() == mahalleLower)
+                       && y.Ilce != null && y.Ilce.ToLower() == ilceLower
+                       && y.Mahalle != null && y.Mahalle.ToLower() == mahalleLower)
                 .Select(y => new {
                     y.Id,
                     Name = y.Name ?? "Yol",
@@ -1023,9 +982,9 @@ namespace CBS_Harita.Controllers
             {
                 sokaklar = await _context.Yollar.AsNoTracking()
                     .Where(y => y.City != null && y.City.ToLower() == ilLower
-                             && y.Ilce != null && y.Ilce.ToLower() == ilceLower
-                             && y.Mahalle != null && y.Mahalle.ToLower().Contains(mahalleKok)
-                             && !string.IsNullOrEmpty(y.Name))
+                           && y.Ilce != null && y.Ilce.ToLower() == ilceLower
+                           && y.Mahalle != null && y.Mahalle.ToLower().Contains(mahalleKok)
+                           && !string.IsNullOrEmpty(y.Name))
                     .Select(y => y.Name!)
                     .Distinct().OrderBy(x => x).ToListAsync();
             }
@@ -1033,9 +992,9 @@ namespace CBS_Harita.Controllers
             {
                 sokaklar = await _context.KamuBinalari.AsNoTracking()
                     .Where(b => b.City != null && b.City.ToLower() == ilLower
-                             && b.Ilce != null && b.Ilce.ToLower() == ilceLower
-                             && b.Mahalle != null && b.Mahalle.ToLower().Contains(mahalleKok)
-                             && !string.IsNullOrEmpty(b.SokakCadde))
+                           && b.Ilce != null && b.Ilce.ToLower() == ilceLower
+                           && b.Mahalle != null && b.Mahalle.ToLower().Contains(mahalleKok)
+                           && !string.IsNullOrEmpty(b.SokakCadde))
                     .Select(b => b.SokakCadde!)
                     .Distinct().OrderBy(x => x).ToListAsync();
             }
@@ -1051,8 +1010,8 @@ namespace CBS_Harita.Controllers
 
             var query = _context.KamuBinalari.AsNoTracking()
                 .Where(b => b.City != null && b.City.ToLower() == il.Trim().ToLower()
-                         && b.Ilce != null && b.Ilce.ToLower() == ilce.Trim().ToLower()
-                         && b.Mahalle != null && b.Mahalle.ToLower() == mahalle.Trim().ToLower());
+                       && b.Ilce != null && b.Ilce.ToLower() == ilce.Trim().ToLower()
+                       && b.Mahalle != null && b.Mahalle.ToLower() == mahalle.Trim().ToLower());
 
             if (!string.IsNullOrWhiteSpace(sokak))
             {
